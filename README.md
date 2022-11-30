@@ -46,11 +46,11 @@ cd [path of voicevox engine]
 ...コードを見たほうが早いですね。
 
 ```python
-import time
 from ninvoicevox import AsyncQueue, Speaker, get_speaker_info
 
 info = get_speaker_info()
-zundamon = Speaker(info.name['ずんだもん']['ノーマル'])
+zundamon = Speaker(info.name['ずんだもん']['ノーマル'],
+                   enable_cache=True)
 
 voice = {}
 voice['start'] = zundamon.text('処理が始まりました。')
@@ -88,11 +88,11 @@ cd [path of voicevox engine]
 The code below may be more simple.
 
 ```python
-import time
 from ninvoicevox import AsyncQueue, Speaker, get_speaker_info
 
 info = get_speaker_info()
-zundamon = Speaker(info.name['ずんだもん']['ノーマル'])
+zundamon = Speaker(info.name['ずんだもん']['ノーマル'],
+                   enable_cache=True)
 
 voice = {}
 voice['start'] = zundamon.text('処理が始まりました。')
@@ -116,5 +116,5 @@ with AsyncQueue() as q:
 Voicevoxの説明書きをよく読むと良いのではないかと思います。
 
 # Licence
-The code itself is MIT. However, the libraries used may not be OSS.
+I'll license this dumb code to MIT. However, the libraries used may not be OSS.
 Read document of voicevox carefully.
