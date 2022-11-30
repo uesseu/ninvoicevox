@@ -9,16 +9,16 @@ from copy import deepcopy
 from hashlib import md5
 import os
 from logging import getLogger, basicConfig, INFO, Logger
+import tempfile
 
 basicConfig(level=INFO)
 logger = getLogger()
 HEADER_JSON = {"Content-Type": "application/json"}
 VOICE_TOKEN_API = 'audio_query'
 VOICE_API = 'synthesis'
-if os.name == 'posix':
-    SOUND_PLAYER = ['aplay']
-elif os.name == 'nt':
-    SOUND_PLAYER = ['mshta.exe']
+UNIX_SOUND_PLAYER = ['aplay']
+if os.name == 'nt':
+    import winsound
 
 
 NameStyle = namedtuple('NameStyle', ('name', 'style'))
@@ -73,7 +73,6 @@ def get_speaker_info(
 class Speaker:
     '''
     Say something by VOICEVOX.
-    It can preload voice asynchronously before using it.
 
     Parameters
     ----------
@@ -110,8 +109,10 @@ class Speaker:
         Voicevox option. kana.
     directory: str = 'voice_cache'
         Directory to save cached voice.
+        I recommend to use tempfile in standard package of python.
     enable_cache: bool = False
-        Save cache into disk.
+        Make cache file or not.
+        This object makes cache file, however it does not delete the file.
     '''
     def __init__(self, speaker_id: int = 1,
                  url: str="http://localhost:50021",
@@ -147,13 +148,20 @@ class Speaker:
     def text(self, text: str) -> 'Voice':
         return Voice(text, self)
 
+
 class Voice:
+    '''
+    Voice object.
+    It can be yielded from text method of Speaker object.
+    It can preload voice asynchronously before using it.
+    '''
     def __init__(self, text: str, speaker: Speaker) -> None:
         self.text = text
         self.speaker = speaker
         self.receive_thread = Thread(target=self._receive)
         if self.speaker.preload:
             self.receive_thread.start()
+        self.sound: Optional[bytes] = None
 
     def load(self) -> None:
         '''
@@ -167,6 +175,9 @@ class Voice:
         self.receive_thread.start()
 
     def _setup_token_dict(self) -> None:
+        '''
+        Set up dict of token.
+        '''
         voice_token = Talker(self.speaker.url, VOICE_TOKEN_API)\
             .set_get(dict2get(dict(text=self.text, speaker=self.speaker.speaker_id)))\
             .set_method('POST').get()
@@ -212,6 +223,10 @@ class Voice:
         return self.sound
 
     def make_fname(self) -> str:
+        '''
+        Make name of cache file from option.
+        It is hard to same as other cache but not perfect.
+        '''
         token_dict = deepcopy(self.token_dict)
         token_dict['url'] = self.speaker.url
         token_dict['text'] = self.text
@@ -220,7 +235,13 @@ class Voice:
         hash_md5.update(json.dumps(token_dict).encode())
         return hash_md5.hexdigest()
 
-    def save_cache(self) -> None:
+    def save_cache(self, logger: Logger = logger) -> None:
+        '''
+        Load voice cache from disk.
+
+        logger: Logger
+            If you want to replace logger, you can set it.
+        '''
         if not os.path.exists(self.speaker.directory):
             os.makedirs(self.speaker.directory)
         fname = self.speaker.directory / self.make_fname()
@@ -229,6 +250,12 @@ class Voice:
             fb.write(self.sound)
 
     def load_cache(self, logger: Logger = logger) -> bool:
+        '''
+        Load voice cache from disk.
+
+        logger: Logger
+            If you want to replace logger, you can set it.
+        '''
         try:
             fname = self.speaker.directory / self.make_fname()
             with open(fname, 'rb') as fb:
@@ -238,7 +265,7 @@ class Voice:
         except BaseException as er:
             return False
 
-    def speak(self, command: List[str] = ['aplay']) -> None:
+    def speak(self, command: List[str] = UNIX_SOUND_PLAYER) -> None:
         '''
         Play sound from voicevox.
 
@@ -246,11 +273,18 @@ class Voice:
         ----------
         command: List[str]
             By default, if you are using linux, aplay is used.
-            If you are using windows, mshta.exe may be used.
+            If you want to use other sound player, write like below.
+            ['program', '-option']
+
+            If you are using windows, standard library named windound is used.
+            There is a little difference between unix and windows.
 
         Returns
         -------
         None
         '''
-        task = Popen(command, stdin=PIPE)
-        task.communicate(self.get())
+        if os.name == 'nt':
+            winsound.PlaySound(self.get(), winsound.SND_MEMORY)
+        else:
+            task = Popen(command, stdin=PIPE)
+            task.communicate(self.get())
