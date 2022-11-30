@@ -11,6 +11,12 @@ voicevoxで生成された声を同時に1つだけ再生する事が出来ま�
 一応、下手な英語も併記しますね。
 ...要らなそうだけど🤔
 
+インストールは
+
+```
+pip install git+https://github.com/uesseu/ninvoicevox
+```
+
 # Ninvoicevox
 Ninvoicevox is python client of voicevox engine.  
 Below is the link to voicevox engine.
@@ -25,6 +31,11 @@ since hearing multiple sounds is not easy for me.
 ...Im japanese and voicevox may be good software for japanese.
 Im not good at English, And so, this README is written in japanese at first.
 ...It may be only for japanese and may not be needed English version🤔
+
+Install:
+```
+pip install git+https://github.com/uesseu/ninvoicevox
+```
 
 # 使い方
 まずはvoicevox engineのhttpサーバーを起動して下さい。
