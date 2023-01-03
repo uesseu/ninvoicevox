@@ -24,8 +24,8 @@ def main() -> None:
     if args.delete_cache:
         shutil.rmtree(Speaker('', preload=False).directory)
         return None
-    Speaker(text, enable_cache=args.cache,
-            speaker=get_speaker_info().name[args.speaker][args.name],
+    Speaker(enable_cache=args.cache,
+            speaker_id=get_speaker_info().name[args.speaker][args.name],
             directory=args.cache_path
-            ).speak()
+            ).text(text).speak()
 

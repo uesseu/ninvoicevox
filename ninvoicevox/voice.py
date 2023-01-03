@@ -76,9 +76,7 @@ class Speaker:
 
     Parameters
     ----------
-    text: str
-        String to read.
-    speaker: int
+    speaker_id: int
         Number of voicevox library.
         This specifies which library to use.
     url: str
