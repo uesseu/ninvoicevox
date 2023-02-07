@@ -8,6 +8,7 @@ AsyncQueue class in this module plays only one voice at once.
 from queue import Queue
 from typing import Any, List
 from threading import Thread
+from doctest import testmod
 
 class AsyncQueue:
     '''
@@ -19,17 +20,15 @@ class AsyncQueue:
 
     ----------
     >>> import operator
-    >>> aq = AsyncQueue()
+    >>> aq = AsyncQueue(save_results=True)
     >>> aq.put(operator.add, 1, 3)
-    >>> aq.start()  # It can start on any time.
-    >>> print(aq.get())  # Get last result of put. It is synchronous.
-    4
+    >>> _ = aq.start()  # It can start on any time.
     >>> aq.put(operator.sub, 5, 3)
     >>> result = aq.end()  # Get results of aq.
     >>> print(result)
-    [2]
-    >>> with AsyncQueue() as aqueue:
-    >>>     aqueue.put(operator.sub, 5, 3)  # Just calculate and discard it.
+    [4, 2]
+    >>> with AsyncQueue() as aqueue:\
+            aqueue.put(operator.sub, 5, 3)  # Just calculate and discard it.
 
     ----------
 
@@ -85,10 +84,6 @@ class AsyncQueue:
         '''
         self.queue.put(data)
 
-    def get(self) -> Any:
-        if self.save_results:
-            return self.results.pop()
-
     def end(self) -> list:
         self.queue.put(None)
         self.thread.join()
@@ -99,3 +94,6 @@ class AsyncQueue:
 
     def __exit__(self, i: Any, j: Any, k: Any) -> None:
         self.end()
+
+if __name__ == '__main__':
+    testmod()
