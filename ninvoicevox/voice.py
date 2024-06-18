@@ -1,6 +1,27 @@
+'''
+A python client of voicevox-engine.
+
+>>> from ninvoicevox import AsyncQueue, Speaker, get_speaker_info
+>>> info = get_speaker_info()
+>>> zundamon = Speaker(info.name['ずんだもん']['ノーマル'],
+>>>                    enable_cache=True)
+>>> voice = {}
+>>> voice['start'] = zundamon.text('処理が始まりました。')
+>>> voice['under_going'] = zundamon.text('処理が途中です。')
+>>> voice['end'] = zundamon.text('処理が終わりましたよ。')
+>>> def heavy_task():
+>>>     pass
+>>> with AsyncQueue() as q:
+>>>     q.put(voice['start'].speak)  # Speaks in background.
+>>>     heavy_task()
+>>>     q.put(voice['under_going'].speak)  # Speaks in background after 'start'.
+>>>     heavy_task()
+>>>     q.put(voice['end'].speak)  # Speaks in backgournd after 'under_going'.
+'''
 import json
+import time
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 from threading import Thread
 from subprocess import PIPE, Popen
 from collections import namedtuple
@@ -111,6 +132,23 @@ class Speaker:
     enable_cache: bool = False
         Make cache file or not.
         This object makes cache file, however it does not delete the file.
+
+    >>> from ninvoicevox import AsyncQueue, Speaker, get_speaker_info
+    >>> info = get_speaker_info()
+    >>> zundamon = Speaker(info.name['ずんだもん']['ノーマル'],
+    >>>                    enable_cache=True)
+    >>> voice = {}
+    >>> voice['start'] = zundamon.text('処理が始まりました。')
+    >>> voice['under_going'] = zundamon.text('処理が途中です。')
+    >>> voice['end'] = zundamon.text('処理が終わりましたよ。')
+    >>> def heavy_task():
+    >>>     pass
+    >>> with AsyncQueue() as q:
+    >>>     q.put(voice['start'].speak)  # Speaks in background.
+    >>>     heavy_task()
+    >>>     q.put(voice['under_going'].speak)  # Speaks in background after 'start'.
+    >>>     heavy_task()
+    >>>     q.put(voice['end'].speak)  # Speaks in backgournd after 'under_going'.
     '''
     def __init__(self, speaker_id: int = 1,
                  url: str="http://localhost:50021",
@@ -125,7 +163,8 @@ class Speaker:
                  output_stereo = True,
                  kana: str = "",
                  directory: str = 'voice_cache',
-                 enable_cache: bool = False
+                 enable_cache: bool = False,
+                 logger: Logger = logger
                  ) -> None:
         self.directory = Path(directory)
         self.enable_cache = enable_cache
@@ -142,9 +181,10 @@ class Speaker:
         self.output_stereo = output_stereo
         self.kana = kana
         self.enable_cache = enable_cache
+        self.logger = logger
 
     def text(self, text: str) -> 'Voice':
-        return Voice(text, self)
+        return Voice(text, self, self.logger)
 
 
 class Voice:
@@ -153,7 +193,9 @@ class Voice:
     It can be yielded from text method of Speaker object.
     It can preload voice asynchronously before using it.
     '''
-    def __init__(self, text: str, speaker: Speaker) -> None:
+    def __init__(self, text: str, speaker: Speaker,
+                 logger: Optional[Logger] = logger) -> None:
+        self.logger = logger
         self.text = text
         self.speaker = speaker
         self.receive_thread = Thread(target=self._receive)
@@ -197,6 +239,8 @@ class Voice:
         Receive voice and put it in self.sound.
         It may be used as background task.
         '''
+        if self.logger is not None:
+            t = time.time()
         self._setup_token_dict()
         if self.speaker.enable_cache:
             if self.load_cache():
@@ -208,6 +252,8 @@ class Voice:
             .set_post(voice_token).get()
         if self.speaker.enable_cache:
             self.save_cache()
+        if self.logger is not None:
+            self.logger.info(f'Time spent to speak: {time.time() - t}')
 
     def get(self) -> bytes:
         '''
@@ -284,5 +330,6 @@ class Voice:
         if os.name == 'nt':
             winsound.PlaySound(self.get(), winsound.SND_MEMORY)
         else:
-            task = Popen(command, stdin=PIPE)
+            task = Popen(command, stdin=PIPE, stdout=PIPE, stderr=PIPE)
             task.communicate(self.get())
+            task.wait()

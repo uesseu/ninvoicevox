@@ -6,7 +6,7 @@ It is not good.
 AsyncQueue class in this module plays only one voice at once.
 '''
 from queue import Queue
-from typing import Any, List
+from typing import Any, List, Optional
 from threading import Thread
 from doctest import testmod
 
@@ -88,6 +88,9 @@ class AsyncQueue:
         self.queue.put(None)
         self.thread.join()
         return self.results
+
+    def stop(self, timeout: Optional[float] =0) -> None:
+        self.thread.join(timeout)
 
     def __enter__(self) -> 'AsyncQueue':
         return self.start()
