@@ -39,6 +39,8 @@ pip install git+https://github.com/uesseu/ninvoicevox
 
 # 使い方
 まずはvoicevox engineのhttpサーバーを起動して下さい。
+また、linuxの場合はALSAの音声出力ソフトのaplayを使えるようにしておいてください。
+依存先じゃないけれど、デフォルトでこれを使います。
 
 ```bash
 cd [path of voicevox engine]
@@ -81,6 +83,8 @@ with AsyncQueue() as q:
 
 # Usage
 At first, start http server of voicevox.
+If you want to use in linux, install aplay, which is player of alsa.
+Aplay is not required, however it is default for this software.
 
 ```bash
 cd [path of voicevox engine]
