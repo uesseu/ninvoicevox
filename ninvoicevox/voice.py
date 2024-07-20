@@ -214,25 +214,32 @@ class Voice:
         '''
         self.receive_thread.start()
 
-    def _setup_token_dict(self) -> None:
+    def _setup_token_dict(self, online=True) -> dict:
         '''
         Set up dict of token.
         '''
-        voice_token = Talker(self.speaker.url, VOICE_TOKEN_API)\
-            .set_get(dict2get(dict(text=self.text, speaker=self.speaker.speaker_id)))\
-            .set_method('POST').get()
-        self.token_dict = json.loads(voice_token.decode('utf-8'))
-        self.token_dict["speedScale"] = self.speaker.speed_scale
-        self.token_dict["pitchScale"] = self.speaker.pitch_scale
-        self.token_dict["intonationScale"] = self.speaker.intonation_scale
-        self.token_dict["volumeScale"] = self.speaker.volume_scale
-        self.token_dict["prePhonemeLength"] = self.speaker.pre_phoneme_length
-        self.token_dict["postPhonemeLength"] = self.speaker.post_phoneme_length
+        if online:
+            voice_token = Talker(self.speaker.url, VOICE_TOKEN_API)\
+                .set_get(
+                    dict2get(
+                        dict(text=self.text, speaker=self.speaker.speaker_id)
+                    )
+                ).set_method('POST').get()
+            token_dict = json.loads(voice_token.decode('utf-8'))
+        else:
+            token_dict = dict(text=self.text, speaker=self.speaker.speaker_id)
+        token_dict["speedScale"] = self.speaker.speed_scale
+        token_dict["pitchScale"] = self.speaker.pitch_scale
+        token_dict["intonationScale"] = self.speaker.intonation_scale
+        token_dict["volumeScale"] = self.speaker.volume_scale
+        token_dict["prePhonemeLength"] = self.speaker.pre_phoneme_length
+        token_dict["postPhonemeLength"] = self.speaker.post_phoneme_length
         if self.speaker.output_sampling_rate != 0:
-            self.token_dict["outputSamplingRate"] = self.speaker.output_sampling_rate
-        self.token_dict["outputStereo"] = self.speaker.output_stereo
+            token_dict["outputSamplingRate"] = self.speaker.output_sampling_rate
+        token_dict["outputStereo"] = self.speaker.output_stereo
         if self.speaker.kana != '':
-            self.token_dict["kana"] = self.speaker.kana
+            token_dict["kana"] = self.speaker.kana
+        return token_dict
 
     def _receive(self) -> None:
         '''
@@ -241,10 +248,10 @@ class Voice:
         '''
         if self.logger is not None:
             t = time.time()
-        self._setup_token_dict()
         if self.speaker.enable_cache:
             if self.load_cache():
                 return None
+        self.token_dict = self._setup_token_dict()
         voice_token = dict2post(self.token_dict)
         self.sound = Talker(self.speaker.url, VOICE_API)\
             .set_header(HEADER_JSON)\
@@ -271,7 +278,7 @@ class Voice:
         Make name of cache file from option.
         It is hard to same as other cache but not perfect.
         '''
-        token_dict = deepcopy(self.token_dict)
+        token_dict = self._setup_token_dict(False)#deepcopy(self.token_dict)
         token_dict['url'] = self.speaker.url
         token_dict['text'] = self.text
         token_dict['speaker'] = self.speaker.speaker_id

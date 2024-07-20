@@ -17,6 +17,7 @@ class AsyncQueue:
     This queue can append something after start running.
     Must end by end method or with statement.
     Used like below.
+    It can used only in single thread.
 
     ----------
     >>> import operator
