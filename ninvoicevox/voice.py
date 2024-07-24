@@ -26,14 +26,14 @@ from threading import Thread
 from subprocess import PIPE, Popen
 from collections import namedtuple
 from .talker import Talker, dict2post, dict2get
-from copy import deepcopy
 from hashlib import md5
 import os
-from logging import getLogger, basicConfig, INFO, Logger
+from logging import getLogger, basicConfig, WARNING, Logger, NullHandler
 import tempfile
 
-basicConfig(level=INFO)
-logger = getLogger()
+basicConfig(level=WARNING)
+logger = getLogger('ninvoice')
+logger.addHandler(NullHandler())
 HEADER_JSON = {"Content-Type": "application/json"}
 VOICE_TOKEN_API = 'audio_query'
 VOICE_API = 'synthesis'
@@ -44,6 +44,8 @@ if os.name == 'nt':
 
 NameStyle = namedtuple('NameStyle', ('name', 'style'))
 SpeakerInfo = namedtuple('SpeakerInfo', ('name', 'id'))
+
+
 def speakerinfo2dict(loaded: List[dict]) -> SpeakerInfo:
     '''
     Convert json data from voicevox to structure of python.
@@ -67,9 +69,8 @@ def speakerinfo2dict(loaded: List[dict]) -> SpeakerInfo:
     return SpeakerInfo(by_name, by_id)
 
 
-def get_speaker_info(
-    url: str = "http://localhost:50021",
-    api: str = 'speakers') -> SpeakerInfo:
+def get_speaker_info(url: str = "http://localhost:50021",
+                     api: str = 'speakers') -> SpeakerInfo:
     '''
     Get voice library information from voicevox server.
     It returns namedtuple named 'SpeakerInfo'.
@@ -150,8 +151,9 @@ class Speaker:
     >>>     heavy_task()
     >>>     q.put(voice['end'].speak)  # Speaks in backgournd after 'under_going'.
     '''
+
     def __init__(self, speaker_id: int = 1,
-                 url: str="http://localhost:50021",
+                 url: str = "http://localhost:50021",
                  preload: bool = True,
                  speed_scale: float = 1,
                  pitch_scale: float = 0.0,
@@ -160,7 +162,7 @@ class Speaker:
                  pre_phoneme_length: float = 0.1,
                  post_phoneme_length: float = 0.1,
                  output_sampling_rate: float = 0,
-                 output_stereo = True,
+                 output_stereo: bool = True,
                  kana: str = "",
                  directory: str = 'voice_cache',
                  enable_cache: bool = False,
@@ -192,31 +194,31 @@ class Voice:
     Voice object.
     It can be yielded from text method of Speaker object.
     It can preload voice asynchronously before using it.
+
+    text: str
+        Text to read.
+    speaker: Speaker
+        Speaker object, which represents attributes of voicevox.
+    logger: Logger
+        Logger you want to use.
     '''
+
     def __init__(self, text: str, speaker: Speaker,
-                 logger: Optional[Logger] = logger) -> None:
+                 logger: Logger = logger) -> None:
         self.logger = logger
         self.text = text
         self.speaker = speaker
-        self.receive_thread = Thread(target=self._receive)
         if self.speaker.preload:
+            self.receive_thread = Thread(target=self._receive)
             self.receive_thread.start()
         self.sound: Optional[bytes] = None
-
-    def load(self) -> None:
-        '''
-        Start making voice by voicevox.
-        It is not needed if preload option is True in constructor.
-
-        Returns
-        ----------
-        None
-        '''
-        self.receive_thread.start()
 
     def _setup_token_dict(self, online=True) -> dict:
         '''
         Set up dict of token.
+
+        online: bool
+            Get json from server. If False, makes own dictionary.
         '''
         if online:
             voice_token = Talker(self.speaker.url, VOICE_TOKEN_API)\
@@ -235,7 +237,8 @@ class Voice:
         token_dict["prePhonemeLength"] = self.speaker.pre_phoneme_length
         token_dict["postPhonemeLength"] = self.speaker.post_phoneme_length
         if self.speaker.output_sampling_rate != 0:
-            token_dict["outputSamplingRate"] = self.speaker.output_sampling_rate
+            token_dict["outputSamplingRate"
+                       ] = self.speaker.output_sampling_rate
         token_dict["outputStereo"] = self.speaker.output_stereo
         if self.speaker.kana != '':
             token_dict["kana"] = self.speaker.kana
@@ -262,15 +265,25 @@ class Voice:
         if self.logger is not None:
             self.logger.info(f'Time spent to speak: {time.time() - t}')
 
-    def get(self) -> bytes:
+    def get(self, trial_num: Optional[int] = None) -> bytes:
         '''
         Get voice data from voicevox.
+        If it failed to receive sound, it tries to receive again.
+
+        trial_num: int
+            Number to try.
 
         Returns
         ----------
         bytes: Voice from voicevox.
         '''
-        self.receive_thread.join()
+        if self.speaker.preload:
+            self.receive_thread.join()
+        else:
+            # If sound could not be loaded, repeat receiving.
+            while self.sound is None and (trial_num is None or 1 > trial_num):
+                self._receive()
+                trial_num = None if trial_num is None else trial_num - 1
         return self.sound
 
     def make_fname(self) -> str:
@@ -278,7 +291,7 @@ class Voice:
         Make name of cache file from option.
         It is hard to same as other cache but not perfect.
         '''
-        token_dict = self._setup_token_dict(False)#deepcopy(self.token_dict)
+        token_dict = self._setup_token_dict(False)
         token_dict['url'] = self.speaker.url
         token_dict['text'] = self.text
         token_dict['speaker'] = self.speaker.speaker_id
@@ -286,34 +299,39 @@ class Voice:
         hash_md5.update(json.dumps(token_dict).encode())
         return hash_md5.hexdigest()
 
-    def save_cache(self, logger: Logger = logger) -> None:
+    def save_cache(self) -> None:
         '''
         Load voice cache from disk.
 
         logger: Logger
             If you want to replace logger, you can set it.
         '''
+        if self.sound is None:
+            raise Exception('Sound is None')
         if not os.path.exists(self.speaker.directory):
             os.makedirs(self.speaker.directory)
         fname = self.speaker.directory / self.make_fname()
         with open(fname, 'wb') as fb:
-            logger.info(f'cache saved as {fname}')
+            self.logger.info(f'cache saved as {fname}')
             fb.write(self.sound)
 
-    def load_cache(self, logger: Logger = logger) -> bool:
+    def load_cache(self) -> bool:
         '''
         Load voice cache from disk.
 
         logger: Logger
             If you want to replace logger, you can set it.
         '''
-        try:
-            fname = self.speaker.directory / self.make_fname()
+        fname = self.speaker.directory / self.make_fname()
+        if Path(fname).exists():
             with open(fname, 'rb') as fb:
                 self.sound = fb.read()
-            logger.info(f'loaded {fname}')
+            if self.sound is None:
+                Exception('Cache is empty')
+            self.logger.info(f'loaded {fname}')
             return True
-        except BaseException as er:
+        else:
+            FileNotFoundError('There is no cache.')
             return False
 
     def speak(self, command: List[str] = UNIX_SOUND_PLAYER) -> None:
