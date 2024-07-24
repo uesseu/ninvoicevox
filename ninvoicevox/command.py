@@ -14,7 +14,8 @@ parser.add_argument('-d', '--delete_cache', action='store_true',
                     help='Delete cache and close.')
 parser.add_argument('-l', '--list_speakers', action='store_true',
                     help='Show list of speakers and exit.')
-parser.add_argument('-p', '--cache_path', default='.ninvoice_cache', help='Path to save cached voices.')
+parser.add_argument('-p', '--cache_path', default='.ninvoice_cache',
+                    help='Path to save cached voices.')
 parser.add_argument('-i', '--id', nargs='?', default=None,
                     help='ID of speaker.')
 parser.add_argument('-s', '--speaker', nargs='?', default='ずんだもん',
@@ -39,9 +40,17 @@ def main() -> None:
         voice_id = args.id
         if voice_id is None:
             voice_id = 3
-    Speaker(
-        enable_cache=args.cache,
-        speaker_id=voice_id,
-        speed_scale=args.speed_scale,
-        directory=args.cache_path
-    ).text(text).speak()
+    could_speak = False
+    count = 0
+    while could_speak is False and count < 5:
+        try:
+            Speaker(
+                enable_cache=args.cache,
+                speaker_id=voice_id,
+                speed_scale=args.speed_scale,
+                directory=args.cache_path
+            ).text(text).speak()
+            could_speak = True
+        except BaseException:
+            could_speak = False
+            count += 1
