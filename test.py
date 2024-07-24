@@ -1,5 +1,8 @@
 from ninvoicevox import Speaker, get_speaker_info, AsyncQueue
 import time
+from logging import basicConfig, WARNING
+basicConfig(level=WARNING)
+
 
 # 声の情報をゲットする
 voice_info = get_speaker_info()
@@ -46,3 +49,7 @@ aq.put(nodo.speak)
 gekiomo()
 aq.put(end.speak)
 aq.end()
+
+# 同期処理も
+start.speak()
+mochi.speak()
