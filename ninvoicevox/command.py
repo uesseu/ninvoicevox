@@ -4,7 +4,15 @@ import sys
 import shutil
 
 isatty = sys.stdin.isatty()
-parser = ArgumentParser(description='Voicevox client')
+parser = ArgumentParser(description='''Voicevox client based on python.
+This can use argument and stdin.
+If you use it in not tty environment, it cannot read argument as text.
+
+Example.
+
+echo こんにちは、ずんだもんなのだ。| ninvoice -c
+ninvoice こんにちは、ずんだもんなのだ。
+''')
 if sys.stdin.isatty():
     parser.add_argument('text', nargs='?', default='')
 parser.add_argument('-c', '--cache', action='store_true',
