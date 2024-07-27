@@ -5,10 +5,11 @@ import os
 from typing import Optional
 from urllib.error import URLError
 
-if 'ZUNDA_ERROR' in os.environ["HOME"]:
+HOME = 'USERPROFILE' if os.name == 'nt' else 'HOME'
+if 'ZUNDA_ERROR' in os.environ[HOME]:
     CACHE_DIRECTORY = os.environ["ZUNDA_ERROR"]
 else:
-    CACHE_DIRECTORY = f'{os.environ["HOME"]}/.zundaerror'
+    CACHE_DIRECTORY = f'{os.environ[HOME]}/.zundaerror'
 
 
 def zundamon_says(error_txt: str, backup_txt: Optional[str] = None):
