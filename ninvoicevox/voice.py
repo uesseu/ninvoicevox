@@ -30,6 +30,9 @@ from hashlib import md5
 import os
 from logging import getLogger, basicConfig, WARNING, Logger, NullHandler
 import tempfile
+from itertools import chain
+from copy import deepcopy
+from .asyncqueue import AsyncQueue
 
 basicConfig(level=WARNING)
 logger = getLogger('ninvoice')
@@ -109,6 +112,8 @@ class Speaker:
         by other thread.
         If it is not true, 'load' method should be done before
         retrieving voice.
+    parallel: bool
+        Apply parallel process.
     speed_scale: float = 1,
         Voicevox option. speedScale.
     pitch_scale = 0.0,
@@ -155,6 +160,7 @@ class Speaker:
     def __init__(self, speaker_id: int = 1,
                  url: str = "http://localhost:50021",
                  preload: bool = True,
+                 parallel: bool = False,
                  speed_scale: float = 1,
                  pitch_scale: float = 0.0,
                  intonation_scale: float = 1,
@@ -173,6 +179,7 @@ class Speaker:
         self.url: str = url
         self.speaker_id = speaker_id
         self.preload = preload
+        self.parallel = parallel
         self.speed_scale = speed_scale
         self.pitch_scale = pitch_scale
         self.intonation_scale = intonation_scale
@@ -186,6 +193,8 @@ class Speaker:
         self.logger = logger
 
     def text(self, text: str) -> 'Voice':
+        if self.parallel:
+            return Voices(text, self, self.logger)
         return Voice(text, self, self.logger)
 
 
@@ -358,3 +367,24 @@ class Voice:
             task = Popen(command, stdin=PIPE, stdout=PIPE, stderr=PIPE)
             task.communicate(self.get())
             task.wait()
+
+
+class Voices:
+    def __init__(self, text: str, speaker: Speaker,
+                 logger: Logger = logger) -> None:
+        self.logger = logger
+        speaker_ = deepcopy(speaker)
+        speaker_.preload = False
+        texts = list(chain.from_iterable(
+            t.split('、') for t in text.split('。')
+        ))
+        self.voices = [Voice(text, speaker_, logger) for text in texts]
+
+    def speak(self, command: list = UNIX_SOUND_PLAYER):
+        count = 0
+        voice_num = len(self.voices)
+        with AsyncQueue() as aq:
+            for voice in self.voices:
+                aq.put(voice.get)
+            for voice in self.voices:
+                voice.speak(command)
