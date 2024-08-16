@@ -56,7 +56,8 @@ def main() -> None:
                 enable_cache=args.cache,
                 speaker_id=voice_id,
                 speed_scale=args.speed_scale,
-                directory=args.cache_path
+                directory=args.cache_path,
+                parallel=True
             ).text(text).speak()
             could_speak = True
         except BaseException:

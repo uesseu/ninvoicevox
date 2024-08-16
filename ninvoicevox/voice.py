@@ -217,9 +217,11 @@ class Voice:
         self.logger = logger
         self.text = text
         self.speaker = speaker
+        self.is_receiving: bool = False
         if self.speaker.preload:
             self.receive_thread = Thread(target=self._receive)
             self.receive_thread.start()
+            self.is_receiving = True
         self.sound: Optional[bytes] = None
 
     def _setup_token_dict(self, online=True) -> dict:
@@ -258,10 +260,12 @@ class Voice:
         Receive voice and put it in self.sound.
         It may be used as background task.
         '''
+        self.is_receiving = True
         if self.logger is not None:
             t = time.time()
         if self.speaker.enable_cache:
             if self.load_cache():
+                self.is_receiving = False
                 return None
         self.token_dict = self._setup_token_dict()
         voice_token = dict2post(self.token_dict)
@@ -273,11 +277,15 @@ class Voice:
             self.save_cache()
         if self.logger is not None:
             self.logger.info(f'Time spent to speak: {time.time() - t}')
+        self.is_receiving = False
 
-    def get(self, trial_num: Optional[int] = None) -> bytes:
+    def get(self, timeout: float = 5.0) -> bytes:
         '''
         Get voice data from voicevox.
-        If it failed to receive sound, it tries to receive again.
+        If it failed to receive sound, it tries to receive again
+        until timeout.
+        If preload option is True or is receiving,
+        it does not retry.
 
         trial_num: int
             Number to try.
@@ -286,13 +294,19 @@ class Voice:
         ----------
         bytes: Voice from voicevox.
         '''
-        if self.speaker.preload:
+        if self.speaker.preload and self.is_receiving:
             self.receive_thread.join()
         else:
             # If sound could not be loaded, repeat receiving.
-            while self.sound is None and (trial_num is None or 1 > trial_num):
-                self._receive()
-                trial_num = None if trial_num is None else trial_num - 1
+            if self.is_receiving:
+                count = 0
+                while self.sound is None and count * 0.1 < timeout:
+                    time.sleep(0.1)
+                    count += 1
+            else:
+                t = time.time()
+                while self.sound is None and time.time() - t < timeout:
+                    self._receive()
         return self.sound
 
     def make_fname(self) -> str:
@@ -381,8 +395,6 @@ class Voices:
         self.voices = [Voice(text, speaker_, logger) for text in texts]
 
     def speak(self, command: list = UNIX_SOUND_PLAYER):
-        count = 0
-        voice_num = len(self.voices)
         with AsyncQueue() as aq:
             for voice in self.voices:
                 aq.put(voice.get)
