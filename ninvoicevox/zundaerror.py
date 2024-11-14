@@ -4,6 +4,7 @@ import sys
 import os
 from typing import Optional
 from urllib.error import URLError
+import atexit
 
 HOME = 'USERPROFILE' if os.name == 'nt' else 'HOME'
 if 'ZUNDA_ERROR' in os.environ[HOME]:
@@ -83,6 +84,7 @@ def make_zundamon_cache():
     make_single_cache(speaker, 'インタプリタのエラーなのだ。')
     make_single_cache(speaker, '文法が間違っているのだ。')
     make_single_cache(speaker, '何らかのエラーなのだ。')
+    make_single_cache(speaker, '処理が終ったのだ。')
     print('\nずんだもんの声のキャッシュがインストールされたのだ！')
 
 
@@ -247,6 +249,7 @@ https://github.com/VOICEVOX/voicevox_engine/releases/latest
 
 
 sys.excepthook = _exception_hook
+atexit.register(zundamon_says, ('処理が終ったのだ。',))
 
 
 class ZundamonSays:
