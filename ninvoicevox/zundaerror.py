@@ -13,7 +13,7 @@ else:
     CACHE_DIRECTORY = f'{os.environ[HOME]}/.zundaerror'
 
 
-def zundamon_says(error_txt: str, backup_txt: Optional[str] = None):
+def zundamon_says(error_txt: str, backup_txt: Optional[str] = None, preload=True):
     print(error_txt)
     with_server = True
     try:
@@ -24,13 +24,16 @@ def zundamon_says(error_txt: str, backup_txt: Optional[str] = None):
     if backup_txt:
         if with_server:
             Speaker(info, directory=CACHE_DIRECTORY,
-                    enable_cache=False).text(error_txt).speak()
+                    enable_cache=False,
+                    preload=preload).text(error_txt).speak()
         else:
             Speaker(info, directory=CACHE_DIRECTORY,
-                    enable_cache=True).text(backup_txt).speak()
+                    enable_cache=True,
+                    preload=preload).text(backup_txt).speak()
     else:
         Speaker(info, directory=CACHE_DIRECTORY,
-                enable_cache=True).text(error_txt).speak()
+                enable_cache=True,
+                preload=preload).text(error_txt).speak()
     return error_txt
 
 
@@ -249,7 +252,9 @@ https://github.com/VOICEVOX/voicevox_engine/releases/latest
 
 
 sys.excepthook = _exception_hook
-atexit.register(zundamon_says, ('処理が終ったのだ。',))
+atexit.register(print, '🫛🫛🫛🫛🫛🫛🫛🫛🫛🫛🫛🫛🫛🫛')
+atexit.register(zundamon_says, '処理が終ったのだ。')
+atexit.register(print, '🫛🫛🫛🫛🫛🫛🫛🫛🫛🫛🫛🫛🫛🫛')
 
 
 class ZundamonSays:
