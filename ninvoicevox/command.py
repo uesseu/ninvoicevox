@@ -1,5 +1,5 @@
 from argparse import ArgumentParser
-from .voice import Speaker, get_speaker_info
+from .voice import Speaker, get_speaker_info, AsyncQueue
 import sys
 import shutil
 
@@ -25,13 +25,15 @@ parser.add_argument('-l', '--list_speakers', action='store_true',
 parser.add_argument('-p', '--cache_path', default='.ninvoice_cache',
                     help='Path to save cached voices.')
 parser.add_argument('-i', '--id', nargs='?', default=None,
-                    help='ID of speaker.')
+                    type=int, help='ID of speaker.')
 parser.add_argument('-s', '--speaker', nargs='?', default='ずんだもん',
                     help='Name of speaker.')
 parser.add_argument('-n', '--name', nargs='?', default='ノーマル',
                     help='Name of voice.')
 parser.add_argument('-a', '--speed_scale', type=float, default=1.0,
                     help='Set speed.')
+parser.add_argument('-S', '--stdout', action='store_true',
+                    help='Show list of speakers and exit.')
 args = parser.parse_args()
 
 
@@ -42,15 +44,25 @@ def main() -> None:
         return None
     if args.list_speakers:
         print(get_speaker_info())
-    try:
-        voice_id = get_speaker_info().name[args.speaker][args.name]
-    except BaseException:
-        voice_id = args.id
-        if voice_id is None:
+    if args.id is None:
+        try:
+            voice_id = get_speaker_info().name[args.speaker][args.name]
+        except BaseException:
             voice_id = 3
+    else:
+        voice_id = args.id
     could_speak = False
     count = 0
     while could_speak is False and count < 5:
+        if args.stdout:
+            Speaker(
+                enable_cache=args.cache,
+                speaker_id=voice_id,
+                speed_scale=args.speed_scale,
+                directory=args.cache_path,
+                parallel=True
+            ).text(text).speak(None)
+            could_speak = True
         try:
             Speaker(
                 enable_cache=args.cache,
@@ -60,6 +72,6 @@ def main() -> None:
                 parallel=True
             ).text(text).speak()
             could_speak = True
-        except BaseException:
+        except * Exception as er:
             could_speak = False
             count += 1

@@ -33,6 +33,7 @@ import tempfile
 from itertools import chain
 from copy import deepcopy
 from .asyncqueue import AsyncQueue
+import sys
 
 basicConfig(level=WARNING)
 logger = getLogger('ninvoice')
@@ -307,6 +308,8 @@ class Voice:
                 t = time.time()
                 while self.sound is None and time.time() - t < timeout:
                     self._receive()
+        if self.sound is None:
+            raise Exception()
         return self.sound
 
     def make_fname(self) -> str:
@@ -375,6 +378,9 @@ class Voice:
         -------
         None
         '''
+        if command is None:
+            sys.stdout.buffer.write(self.get())
+            return 0
         if os.name == 'nt':
             winsound.PlaySound(self.get(), winsound.SND_MEMORY)
         else:
