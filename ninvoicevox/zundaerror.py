@@ -253,7 +253,7 @@ https://github.com/VOICEVOX/voicevox_engine/releases/latest
 
 sys.excepthook = _exception_hook
 atexit.register(print, '🫛🫛🫛🫛🫛🫛🫛🫛🫛🫛🫛🫛🫛🫛')
-atexit.register(zundamon_says, '処理が終ったのだ。')
+atexit.register(zundamon_says, '処理が終ったのだ。', preload=False)
 atexit.register(print, '🫛🫛🫛🫛🫛🫛🫛🫛🫛🫛🫛🫛🫛🫛')
 
 
