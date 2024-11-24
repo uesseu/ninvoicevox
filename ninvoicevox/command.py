@@ -3,7 +3,6 @@ from .voice import Speaker, get_speaker_info, AsyncQueue
 import sys
 import shutil
 
-isatty = sys.stdin.isatty()
 parser = ArgumentParser(description='''Voicevox client based on python.
 This can use argument and stdin.
 If you use it in not tty environment, it cannot read argument as text.
@@ -13,8 +12,7 @@ Example.
 echo こんにちは、ずんだもんなのだ。| ninvoice -c
 ninvoice こんにちは、ずんだもんなのだ。
 ''')
-if sys.stdin.isatty():
-    parser.add_argument('text', nargs='?', default='')
+parser.add_argument('text', nargs='?', default='')
 parser.add_argument('-c', '--cache', action='store_true',
                     help='Enable disk cache.'
                     'Cache is saved in directory named by -p option.')
@@ -38,7 +36,7 @@ args = parser.parse_args()
 
 
 def main() -> None:
-    text = args.text if isatty else sys.stdin.read()
+    text = args.text if args.text else sys.stdin.read()
     if args.delete_cache:
         shutil.rmtree(Speaker('', preload=False).directory)
         return None
