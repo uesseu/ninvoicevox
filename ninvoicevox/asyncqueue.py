@@ -10,6 +10,7 @@ from typing import Any, List, Optional
 from threading import Thread
 from doctest import testmod
 
+
 class AsyncQueue:
     '''
     Queue object to process something in order.
@@ -44,6 +45,7 @@ class AsyncQueue:
         It may be good if you want to make daemon.
         If it is True, save_results forced to be false.
     '''
+
     def __init__(self, end_object: Any = None,
                  save_results: bool = False,
                  endless: bool = False):
@@ -90,7 +92,7 @@ class AsyncQueue:
         self.thread.join()
         return self.results
 
-    def stop(self, timeout: Optional[float] =0) -> None:
+    def stop(self, timeout: Optional[float] = 0) -> None:
         self.thread.join(timeout)
 
     def __enter__(self) -> 'AsyncQueue':
@@ -98,6 +100,7 @@ class AsyncQueue:
 
     def __exit__(self, i: Any, j: Any, k: Any) -> None:
         self.end()
+
 
 if __name__ == '__main__':
     testmod()
