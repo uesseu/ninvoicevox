@@ -7,7 +7,7 @@ AsyncQueue class in this module plays only one voice at once.
 '''
 from queue import Queue
 from typing import Any, List, Optional
-from threading import Thread
+from threading import Thread, Lock
 from doctest import testmod
 
 
@@ -19,6 +19,8 @@ class AsyncQueue:
     Must end by end method or with statement.
     Used like below.
     It can used only in single thread.
+
+    I reccomend using it by with statement strongly.
 
     ----------
     >>> import operator
@@ -86,6 +88,9 @@ class AsyncQueue:
         arguments for the function.
         '''
         self.queue.put(data)
+
+    def __del__(self):
+        self.end()
 
     def end(self) -> list:
         self.queue.put(None)
