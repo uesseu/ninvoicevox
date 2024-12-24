@@ -50,6 +50,84 @@ NameStyle = namedtuple('NameStyle', ('name', 'style'))
 SpeakerInfo = namedtuple('SpeakerInfo', ('name', 'id'))
 
 
+class Dictionary:
+    '''
+    Class to configure dictionary of voicevox.
+    '''
+
+    def __init__(self, url: str = "http://localhost:50021"):
+        self.url = url
+
+    def get(self):
+        return json.loads(Talker(self.url, 'user_dict').get())
+
+    def delete(self, word_id: str):
+        '''
+        word_id: str
+        '''
+        return Talker(self.url, '/'.join(('user_dict_word', word_id)))\
+            .set_method('DELETE').send()
+
+    def update(
+        self, word_id, surface: str, pronunciation: str, accent_type: int,
+        url: str = "http://localhost:50021",
+        word_type: str | None = None, priority: int | None = None
+    ):
+        '''
+        surface: str
+            Surface of word.
+        pronunciation: str
+            Pronounciation in katakana.
+        accent_type: int
+            Location of accent.
+        word_type: str
+            Type of word. it is one of them.
+            "PROPER_NOUN" "COMMON_NOUN" "VERB" "ADJECTIVE" "SUFFIX"
+        '''
+        request = {
+                    'word_uuid': word_id,
+                    'surface': surface,
+                    'pronunciation': pronunciation,
+                    'accent_type': accent_type
+                 }
+        if word_type:
+            request.update({'word_type': word_type})
+        if priority:
+            request.update({'priority': priority})
+        return Talker(url, 'user_dict_word')\
+            .set_header(HEADER_JSON)\
+            .set_get(dict2get(request)).set_method('POST').send()
+
+    def add(self, surface: str, pronunciation: str,
+            accent_type: int,
+            url: str = "http://localhost:50021",
+            word_type: str | None = None,
+            priority: str | None = None):
+        '''
+        surface: str
+            Surface of word.
+        pronunciation: str
+            Pronounciation in katakana.
+        accent_type: int
+            Location of accent.
+        word_type: str
+            Type of word. it is one of them.
+            "PROPER_NOUN" "COMMON_NOUN" "VERB" "ADJECTIVE" "SUFFIX"
+        '''
+        request = {
+                    'surface': surface,
+                    'pronunciation': pronunciation,
+                    'accent_type': accent_type
+                 }
+        if word_type:
+            request.update({'word_type': word_type})
+        if priority:
+            request.update({'priority': priority})
+        return Talker(url, 'user_dict_word')\
+            .set_header(HEADER_JSON)\
+            .set_get(dict2get(request)).set_method('POST').send()
+
+
 def speakerinfo2dict(loaded: List[dict]) -> SpeakerInfo:
     '''
     Convert json data from voicevox to structure of python.
@@ -297,6 +375,8 @@ class Voice:
         '''
         if self.speaker.preload and self.is_receiving:
             self.receive_thread.join()
+            while self.sound is None:
+                self.receive_thread = self._receive()
         else:
             # If sound could not be loaded, repeat receiving.
             if self.is_receiving:
@@ -309,7 +389,7 @@ class Voice:
                 while self.sound is None and time.time() - t < timeout:
                     self._receive()
         if self.sound is None:
-            raise Exception()
+            raise Exception('No sound is loaded')
         return self.sound
 
     def make_fname(self) -> str:
