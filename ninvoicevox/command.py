@@ -32,11 +32,16 @@ parser.add_argument('-a', '--speed_scale', type=float, default=1.0,
                     help='Set speed.')
 parser.add_argument('-S', '--stdout', action='store_true',
                     help='Show list of speakers and exit.')
+parser.add_argument('--zundamon', action='store_true',
+                    help='Speak in zundamon style.')
 args = parser.parse_args()
 
 
 def main() -> None:
     text = args.text if args.text else sys.stdin.read()
+    if args.zundamon:
+        from .terms import change_style
+        text = change_style(text)
     if args.delete_cache:
         shutil.rmtree(Speaker('', preload=False).directory)
         return None
