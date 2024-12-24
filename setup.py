@@ -15,7 +15,7 @@ It needs voicevox server and this is just a client.''',
     zip_safe=False,
     entry_points={
         "console_scripts": [
-            "ninvoice=ninvoicevox.command:main",
+            "ninvoice=ninvoicevox.main_command:main",
         ]
     },
 )
