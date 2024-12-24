@@ -42,6 +42,7 @@ HEADER_JSON = {"Content-Type": "application/json"}
 VOICE_TOKEN_API = 'audio_query'
 VOICE_API = 'synthesis'
 UNIX_SOUND_PLAYER = ['aplay']
+DEFAULT_URL: str = 'http://localhost:50021'
 if os.name == 'nt':
     import winsound
 
@@ -55,7 +56,7 @@ class Dictionary:
     Class to configure dictionary of voicevox.
     '''
 
-    def __init__(self, url: str = "http://localhost:50021"):
+    def __init__(self, url: str = DEFAULT_URL):
         self.url = url
 
     def get(self):
@@ -70,7 +71,7 @@ class Dictionary:
 
     def update(
         self, word_id, surface: str, pronunciation: str, accent_type: int,
-        url: str = "http://localhost:50021",
+        url: str = DEFAULT_URL,
         word_type: str | None = None, priority: int | None = None
     ):
         '''
@@ -100,7 +101,7 @@ class Dictionary:
 
     def add(self, surface: str, pronunciation: str,
             accent_type: int,
-            url: str = "http://localhost:50021",
+            url: str = DEFAULT_URL,
             word_type: str | None = None,
             priority: str | None = None):
         '''
@@ -151,7 +152,7 @@ def speakerinfo2dict(loaded: List[dict]) -> SpeakerInfo:
     return SpeakerInfo(by_name, by_id)
 
 
-def get_speaker_info(url: str = "http://localhost:50021",
+def get_speaker_info(url: str = DEFAULT_URL,
                      api: str = 'speakers') -> SpeakerInfo:
     '''
     Get voice library information from voicevox server.
@@ -237,7 +238,7 @@ class Speaker:
     '''
 
     def __init__(self, speaker_id: int = 1,
-                 url: str = "http://localhost:50021",
+                 url: str = DEFAULT_URL,
                  preload: bool = True,
                  parallel: bool = False,
                  speed_scale: float = 1,
