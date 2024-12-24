@@ -11,6 +11,7 @@ Example.
 
 echo こんにちは、ずんだもんなのだ。| ninvoice -c
 ninvoice こんにちは、ずんだもんなのだ。
+ninvoice < [filename]
 ''')
 parser.add_argument('text', nargs='?', default='')
 parser.add_argument('-c', '--cache', action='store_true',
@@ -18,6 +19,8 @@ parser.add_argument('-c', '--cache', action='store_true',
                     'Cache is saved in directory named by -p option.')
 parser.add_argument('-d', '--delete_cache', action='store_true',
                     help='Delete cache and close.')
+parser.add_argument('-u', '--url', type=str, default="http://localhost:50021",
+                    help='URL of the server. It should be with port number.')
 parser.add_argument('-l', '--list_speakers', action='store_true',
                     help='Show list of speakers and exit.')
 parser.add_argument('-p', '--cache_path', default='.ninvoice_cache',
@@ -63,6 +66,7 @@ def main() -> None:
                 speaker_id=voice_id,
                 speed_scale=args.speed_scale,
                 directory=args.cache_path,
+                url=args.url,
                 parallel=True
             ).text(text).speak(None)
             could_speak = True
@@ -72,6 +76,7 @@ def main() -> None:
                 speaker_id=voice_id,
                 speed_scale=args.speed_scale,
                 directory=args.cache_path,
+                url=args.url,
                 parallel=True
             ).text(text).speak()
             could_speak = True
