@@ -126,7 +126,7 @@ class Dictionary:
             request.update({'priority': priority})
         return Talker(url, 'user_dict_word')\
             .set_header(HEADER_JSON)\
-            .set_get(dict2get(request)).set_method('POST').send()
+            .set_get(dict2get(request)).set_method('POST').get()
 
 
 def speakerinfo2dict(loaded: List[dict]) -> SpeakerInfo:
@@ -441,19 +441,21 @@ class Voice:
             FileNotFoundError('There is no cache.')
             return False
 
-    def speak(self, command: List[str] = UNIX_SOUND_PLAYER) -> None:
+    def speak(self, command: List[str] | None = UNIX_SOUND_PLAYER) -> None:
         '''
         Play sound from voicevox.
 
         Parameters
         ----------
-        command: List[str]
+        command: List[str] | None
             By default, if you are using linux, aplay is used.
             If you want to use other sound player, write like below.
             ['program', '-option']
 
             If you are using windows, standard library named windound is used.
             There is a little difference between unix and windows.
+
+            If it is None, result will be written in stdout.
 
         Returns
         -------
@@ -476,14 +478,20 @@ class Voices:
         self.logger = logger
         speaker_ = deepcopy(speaker)
         speaker_.preload = False
-        texts = list(chain.from_iterable(
-            t.split('、') for t in text.split('。')
-        ))
-        self.voices = [Voice(text, speaker_, logger) for text in texts]
+        texts = [t+'。' for t in text.split('\n')]
+        for n in ('。', '、'):
+            texts = chain.from_iterable(t.split(n) for t in texts)
+            texts = (t + n for t in texts)
+        self.voices = [Voice(text, speaker_, logger)
+                       for text in texts if text]
 
-    def speak(self, command: list = UNIX_SOUND_PLAYER):
+    def speak(self, command: list | None = UNIX_SOUND_PLAYER,
+              sep: float = 0.4):
+        length = len(self.voices)
         with AsyncQueue() as aq:
             for voice in self.voices:
                 aq.put(voice.get)
-            for voice in self.voices:
+            for num, voice in enumerate(self.voices):
                 voice.speak(command)
+                if num < length - 1:
+                    aq.put(time.sleep, sep)
