@@ -5,7 +5,6 @@ import shutil
 
 parser = ArgumentParser(description='''Voicevox client based on python.
 This can use argument and stdin.
-If you use it in not tty environment, it cannot read argument as text.
 
 Example.
 
@@ -58,27 +57,19 @@ def main() -> None:
     else:
         voice_id = args.id
     could_speak = False
+    speaker = Speaker(
+        enable_cache=args.cache,
+        speaker_id=voice_id,
+        speed_scale=args.speed_scale,
+        directory=args.cache_path,
+        url=args.url,
+        parallel=True
+    )
     count = 0
     while could_speak is False and count < 5:
-        if args.stdout:
-            Speaker(
-                enable_cache=args.cache,
-                speaker_id=voice_id,
-                speed_scale=args.speed_scale,
-                directory=args.cache_path,
-                url=args.url,
-                parallel=True
-            ).text(text).speak(None)
-            could_speak = True
+        option = [None] if args.stdout else []
         try:
-            Speaker(
-                enable_cache=args.cache,
-                speaker_id=voice_id,
-                speed_scale=args.speed_scale,
-                directory=args.cache_path,
-                url=args.url,
-                parallel=True
-            ).text(text).speak()
+            speaker.text(text).speak(*option)
             could_speak = True
         except * Exception as er:
             could_speak = False
