@@ -40,7 +40,7 @@ args = parser.parse_args()
 
 
 def main() -> None:
-    text = args.text if args.text else sys.stdin.read()
+    text = args.text if args.text or sys.stdin.isatty() else sys.stdin.read()
     if args.zundamon:
         from .terms import change_style
         text = change_style(text)
