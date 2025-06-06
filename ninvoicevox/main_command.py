@@ -22,6 +22,8 @@ parser.add_argument('-u', '--url', type=str, default="http://localhost:50021",
                     help='URL of the server. It should be with port number.')
 parser.add_argument('-l', '--list_speakers', action='store_true',
                     help='Show list of speakers and exit.')
+parser.add_argument('-j', '--json_speakers', action='store_true',
+                    help='Show json of speakers and exit.')
 parser.add_argument('-p', '--cache_path', default='.ninvoice_cache',
                     help='Path to save cached voices.')
 parser.add_argument('-i', '--id', nargs='?', default=None,
@@ -47,11 +49,18 @@ def main() -> None:
     if args.delete_cache:
         shutil.rmtree(Speaker('', preload=False).directory)
         return None
+    if args.json_speakers:
+        import json
+        print(json.dumps(get_speaker_info(args.url).name, ensure_ascii=False))
     if args.list_speakers:
-        print(get_speaker_info())
+        info = get_speaker_info(args.url).name
+        for key, value in info.items():
+            print(key)
+            for k, v in value.items():
+                print(f'  {k}: {v}')
     if args.id is None:
         try:
-            voice_id = get_speaker_info().name[args.speaker][args.name]
+            voice_id = get_speaker_info(args.url).name[args.speaker][args.name]
         except BaseException:
             voice_id = 3
     else:
